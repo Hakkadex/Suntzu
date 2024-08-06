@@ -3,6 +3,7 @@
 nano suntzu.py
 #Paste the following code into suntzu.py and save the file:
 
+
 #!/usr/bin/env python3
 
 import sys
@@ -39,20 +40,30 @@ def perform_search(query):
         response = requests.get(GOOGLE_NEWS_URL, headers=headers, params=params)
         response.raise_for_status()
         
+        # Debugging: Print the first 500 characters of the response
+        print("Debug: Response content snippet:", response.text[:500])
+
         soup = BeautifulSoup(response.text, 'html.parser')
         results = []
 
+        # Debugging: Check the structure of the soup object
+        print("Debug: Soup structure snippet:", soup.prettify()[:500])
+
+        # Check for articles and other relevant HTML structures
         for item in soup.find_all('article'):
-            title = item.find('h3').get_text() if item.find('h3') else 'No title available'
-            description = item.find('p').get_text() if item.find('p') else 'No description available'
-            url = item.find('a')['href'] if item.find('a') else 'No URL available'
+            title_tag = item.find('h3')
+            description_tag = item.find('p')
+            link_tag = item.find('a')
+            time_tag = item.find('time')
+
+            title = title_tag.get_text() if title_tag else 'No title available'
+            description = description_tag.get_text() if description_tag else 'No description available'
+            url = link_tag['href'] if link_tag else 'No URL available'
             
             if url and not url.startswith('http'):
                 url = 'https://news.google.com' + url
 
-            # Extract date (assumes date is present in a specific format)
-            date_tag = item.find('time')
-            date_text = date_tag.get_text() if date_tag else 'No date available'
+            date_text = time_tag.get_text() if time_tag else 'No date available'
             date_published = parse_date(date_text)
 
             if date_published and is_recent(date_published):
@@ -96,6 +107,8 @@ if __name__ == "__main__":
 
     results = perform_search(subject)
     display_results(results)
+
+
 
 
 
