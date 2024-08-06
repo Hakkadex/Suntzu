@@ -4,12 +4,14 @@ nano suntzu.py
 #Paste the following code into suntzu.py and save the file:
 
 
+
 #!/usr/bin/env python3
 
 import sys
 import requests
 from bs4 import BeautifulSoup
 import urllib.parse
+import webbrowser
 
 SEARCH_ENGINES = {
     'Google': 'https://www.google.com/search',
@@ -54,37 +56,37 @@ def perform_search(query, engine):
             for item in soup.find_all('h3'):
                 title = item.get_text()
                 parent_a = item.find_parent('a')
+                url = 'No URL available'
                 if parent_a and parent_a.has_attr('href'):
                     url = 'https://www.google.com' + parent_a['href']
-                else:
-                    url = 'No URL available'
-                headlines.append({'title': title, 'url': url})
+                date = item.find_next_sibling('span', class_='f')  # Example for date
+                date_text = date.get_text() if date else 'No date available'
+                headlines.append({'title': title, 'url': url, 'date': date_text})
 
         elif engine == 'Bing':
             for item in soup.find_all('h2'):
                 title = item.get_text()
                 parent_a = item.find_parent('a')
-                if parent_a and parent_a.has_attr('href'):
-                    url = parent_a['href']
-                else:
-                    url = 'No URL available'
-                headlines.append({'title': title, 'url': url})
+                url = parent_a['href'] if parent_a and parent_a.has_attr('href') else 'No URL available'
+                date = item.find_next_sibling('span', class_='b_date')  # Example for date
+                date_text = date.get_text() if date else 'No date available'
+                headlines.append({'title': title, 'url': url, 'date': date_text})
 
         elif engine == 'DuckDuckGo':
             for item in soup.find_all('a', class_='result__a'):
                 title = item.get_text()
                 url = item['href']
-                headlines.append({'title': title, 'url': url})
+                date = 'No date available'  # DuckDuckGo may not provide date
+                headlines.append({'title': title, 'url': url, 'date': date})
 
         elif engine == 'Yandex':
             for item in soup.find_all('h2', class_='organic__title'):
                 title = item.get_text()
                 parent_a = item.find_parent('a')
-                if parent_a and parent_a.has_attr('href'):
-                    url = parent_a['href']
-                else:
-                    url = 'No URL available'
-                headlines.append({'title': title, 'url': url})
+                url = parent_a['href'] if parent_a and parent_a.has_attr('href') else 'No URL available'
+                date = item.find_next_sibling('span', class_='date')  # Example for date
+                date_text = date.get_text() if date else 'No date available'
+                headlines.append({'title': title, 'url': url, 'date': date_text})
 
         return headlines
 
@@ -112,11 +114,10 @@ def perform_forum_search(query):
             for item in soup.find_all('h3'):
                 title = item.get_text()
                 parent_a = item.find_parent('a')
-                if parent_a and parent_a.has_attr('href'):
-                    url = 'https://www.google.com' + parent_a['href']
-                else:
-                    url = 'No URL available'
-                headlines.append({'title': title, 'url': url})
+                url = 'https://www.google.com' + parent_a['href'] if parent_a and parent_a.has_attr('href') else 'No URL available'
+                date = item.find_next_sibling('span', class_='f')  # Example for date
+                date_text = date.get_text() if date else 'No date available'
+                headlines.append({'title': title, 'url': url, 'date': date_text})
 
         except requests.exceptions.RequestException as e:
             print(f"An error occurred while querying forums for term '{term}': {e}")
@@ -146,11 +147,10 @@ def perform_reddit_search(query):
             for item in soup.find_all('h3'):
                 title = item.get_text()
                 parent_a = item.find_parent('a')
-                if parent_a and parent_a.has_attr('href'):
-                    url = parent_a['href']
-                    # Make sure URL is from Reddit
-                    if 'reddit.com' in url:
-                        reddit_results.append({'title': title, 'url': url})
+                url = parent_a['href'] if parent_a and parent_a.has_attr('href') else 'No URL available'
+                if 'reddit.com' in url:
+                    date = 'No date available'  # Reddit date extraction not available
+                    reddit_results.append({'title': title, 'url': url, 'date': date})
 
         except requests.exceptions.RequestException as e:
             print(f"An error occurred while querying Reddit: {e}")
@@ -165,8 +165,12 @@ def display_results(results):
 
     for result in results:
         print(f"Title: {result['title']}")
-        print(f"URL: {result['url']}\n")
+        print(f"URL: {result['url']}")
+        print(f"Date: {result['date']}")
         print("-" * 80)
+        # Make URL clickable in some terminals
+        if result['url'] != 'No URL available':
+            webbrowser.open(result['url'])
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -197,6 +201,7 @@ if __name__ == "__main__":
     sorted_headlines = sorted(unique_headlines, key=lambda x: x['title'])
 
     display_results(sorted_headlines)
+
 
 
 
