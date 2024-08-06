@@ -40,19 +40,19 @@ def perform_search(query):
         response = requests.get(GOOGLE_NEWS_URL, headers=headers, params=params)
         response.raise_for_status()
         
-        # Debugging: Print the first 500 characters of the response
-        print("Debug: Response content snippet:", response.text[:500])
+        # Debugging: Print the first 1000 characters of the response
+        print("Debug: Response content snippet:", response.text[:1000])
 
         soup = BeautifulSoup(response.text, 'html.parser')
         results = []
 
         # Debugging: Check the structure of the soup object
-        print("Debug: Soup structure snippet:", soup.prettify()[:500])
+        print("Debug: Soup structure snippet:", soup.prettify()[:1000])
 
-        # Check for articles and other relevant HTML structures
+        # Updated parsing logic based on typical Google News structure
         for item in soup.find_all('article'):
             title_tag = item.find('h3')
-            description_tag = item.find('p')
+            description_tag = item.find('span')
             link_tag = item.find('a')
             time_tag = item.find('time')
 
