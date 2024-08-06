@@ -23,6 +23,13 @@ FORUM_SEARCH_TERMS = [
     'invasion', 'regime', 'riots', 'civil unrest'
 ]
 
+SUBREDDITS = {
+    'North Korea': 'r/NorthKorea',
+    'Russia': 'r/Russia',
+    'China': 'r/China',
+    'Iran': 'r/Iran'
+}
+
 def perform_search(query, engine):
     """Perform a search on the specified search engine."""
     search_query = f"{query} military news"
@@ -116,6 +123,40 @@ def perform_forum_search(query):
 
     return headlines
 
+def perform_reddit_search(query):
+    """Search for Reddit posts related to military topics."""
+    reddit_results = []
+
+    subreddit = SUBREDDITS.get(query, None)
+    if subreddit:
+        search_query = f"{query} military"
+        reddit_url = f"https://www.google.com/search?q=site:reddit.com+{search_query}"
+
+        headers = {
+            'User-Agent': 'Suntzu CLI Tool'
+        }
+        params = {'q': urllib.parse.quote(search_query)}
+
+        try:
+            response = requests.get(reddit_url, headers=headers, params=params)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+
+            for item in soup.find_all('h3'):
+                title = item.get_text()
+                parent_a = item.find_parent('a')
+                if parent_a and parent_a.has_attr('href'):
+                    url = parent_a['href']
+                    # Make sure URL is from Reddit
+                    if 'reddit.com' in url:
+                        reddit_results.append({'title': title, 'url': url})
+
+        except requests.exceptions.RequestException as e:
+            print(f"An error occurred while querying Reddit: {e}")
+
+    return reddit_results
+
 def display_results(results):
     """Display search results in the terminal."""
     if not results:
@@ -145,6 +186,11 @@ if __name__ == "__main__":
     print("Querying forums...")
     forum_headlines = perform_forum_search(subject)
     all_headlines.extend(forum_headlines)
+
+    # Perform Reddit search if applicable
+    print("Querying Reddit...")
+    reddit_headlines = perform_reddit_search(subject)
+    all_headlines.extend(reddit_headlines)
 
     # Remove duplicate headlines and sort them by title
     unique_headlines = {h['title']: h for h in all_headlines}.values()
