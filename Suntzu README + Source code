@@ -4,7 +4,6 @@ nano suntzu.py
 #Paste the following code into suntzu.py and save the file:
 
 
-
 #!/usr/bin/env python3
 
 import sys
@@ -18,6 +17,11 @@ SEARCH_ENGINES = {
     'DuckDuckGo': 'https://duckduckgo.com/',
     'Yandex': 'https://yandex.com/search/'
 }
+
+FORUM_SEARCH_TERMS = [
+    'military', 'troops', 'cyber attack', 'forces', 'invade',
+    'invasion', 'regime', 'riots', 'civil unrest'
+]
 
 def perform_search(query, engine):
     """Perform a search on the specified search engine."""
@@ -81,6 +85,37 @@ def perform_search(query, engine):
         print(f"An error occurred while querying {engine}: {e}")
         return []
 
+def perform_forum_search(query):
+    """Search for military-related forum posts using Google."""
+    headlines = []
+
+    for term in FORUM_SEARCH_TERMS:
+        search_query = f"{query} {term}"
+        headers = {
+            'User-Agent': 'Suntzu CLI Tool'
+        }
+        params = {'q': urllib.parse.quote(search_query)}
+
+        try:
+            response = requests.get(SEARCH_ENGINES['Google'], headers=headers, params=params)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+
+            for item in soup.find_all('h3'):
+                title = item.get_text()
+                parent_a = item.find_parent('a')
+                if parent_a and parent_a.has_attr('href'):
+                    url = 'https://www.google.com' + parent_a['href']
+                else:
+                    url = 'No URL available'
+                headlines.append({'title': title, 'url': url})
+
+        except requests.exceptions.RequestException as e:
+            print(f"An error occurred while querying forums for term '{term}': {e}")
+
+    return headlines
+
 def display_results(results):
     """Display search results in the terminal."""
     if not results:
@@ -100,10 +135,16 @@ if __name__ == "__main__":
     subject = sys.argv[1]
     all_headlines = []
 
+    # Perform main search on all search engines
     for engine in SEARCH_ENGINES.keys():
         print(f"Querying {engine}...")
         headlines = perform_search(subject, engine)
         all_headlines.extend(headlines)
+
+    # Perform additional searches for forum posts
+    print("Querying forums...")
+    forum_headlines = perform_forum_search(subject)
+    all_headlines.extend(forum_headlines)
 
     # Remove duplicate headlines and sort them by title
     unique_headlines = {h['title']: h for h in all_headlines}.values()
