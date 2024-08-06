@@ -1,0 +1,117 @@
+  mkdir Suntzu
+   cd Suntzu
+nano suntzu.py
+#Paste the following code into suntzu.py and save the file:
+
+#!/usr/bin/env python3
+
+import sys
+import requests
+from bs4 import BeautifulSoup
+from datetime import datetime
+import urllib.parse
+
+GOOGLE_NEWS_URL = "https://news.google.com/search"
+
+def parse_date(date_str):
+    """Parse date string into a datetime object."""
+    try:
+        return datetime.strptime(date_str, '%b %d, %Y')
+    except ValueError:
+        return None
+
+def is_recent(date, days=365):
+    """Check if the date is within the last 'days' days."""
+    return (datetime.now() - date).days <= days
+
+def perform_search(query):
+    """Perform a Google News search with military-related keywords appended."""
+    search_query = f"{query} military news"
+    params = {
+        'q': urllib.parse.quote(search_query),
+        'hl': 'en'
+    }
+    headers = {
+        'User-Agent': 'Suntzu CLI Tool'
+    }
+
+    try:
+        response = requests.get(GOOGLE_NEWS_URL, headers=headers, params=params)
+        response.raise_for_status()
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        results = []
+
+        for item in soup.find_all('article'):
+            title = item.find('h3').get_text() if item.find('h3') else 'No title available'
+            description = item.find('p').get_text() if item.find('p') else 'No description available'
+            url = item.find('a')['href'] if item.find('a') else 'No URL available'
+            
+            if url and not url.startswith('http'):
+                url = 'https://news.google.com' + url
+
+            # Extract date (assumes date is present in a specific format)
+            date_tag = item.find('time')
+            date_text = date_tag.get_text() if date_tag else 'No date available'
+            date_published = parse_date(date_text)
+
+            if date_published and is_recent(date_published):
+                results.append({
+                    'title': title,
+                    'description': description,
+                    'url': url,
+                    'date': date_published
+                })
+
+        # Sort results by date in descending order
+        results.sort(key=lambda x: x['date'], reverse=True)
+
+        return results
+
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred: {e}")
+        return []
+
+def display_results(results):
+    """Display search results in the terminal."""
+    if not results:
+        print("No results found.")
+        return
+
+    for result in results:
+        print(f"Title: {result['title']}")
+        print(f"Description: {result['description']}")
+        print(f"URL: {result['url']}")
+        print(f"Date: {result['date'].strftime('%Y-%m-%d')}\n")
+        print("-" * 80)
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: suntzuget <subject>")
+        sys.exit(1)
+
+    subject = sys.argv[1]
+
+    print(f"Subject to search: {subject}")
+
+    results = perform_search(subject)
+    display_results(results)
+
+
+
+
+
+
+
+#Make the file executable
+chmod +x suntzu.py
+
+#Create a Symlink for suntzuget:
+sudo ln -s $(pwd)/suntzu.py /usr/local/bin/suntzuget
+
+#To use the Suntzu CLI tool, simply run:
+#suntzuget <subject>
+suntzuget North Korea
+#You do not need to use _ between search words, example suntzuget North_Korea
+#You can simply type "suntzuget North Korea"
+
