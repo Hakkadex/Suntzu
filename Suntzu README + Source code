@@ -4,6 +4,7 @@ nano suntzu.py
 #Paste the following code into suntzu.py and save the file:
 
 
+
 #!/usr/bin/env python3
 
 import sys
@@ -38,21 +39,24 @@ def perform_search(query, engine):
         soup = BeautifulSoup(response.text, 'html.parser')
         headlines = []
 
-        # Debugging: Print the first 1000 characters of the response
-        print(f"Debug: {engine} response snippet:", response.text[:1000])
-
         if engine == 'Google':
             for item in soup.find_all('h3'):
                 title = item.get_text()
                 parent_a = item.find_parent('a')
-                url = 'https://www.google.com' + parent_a['href'] if parent_a and parent_a.has_attr('href') else 'No URL available'
+                if parent_a and parent_a.has_attr('href'):
+                    url = 'https://www.google.com' + parent_a['href']
+                else:
+                    url = 'No URL available'
                 headlines.append({'title': title, 'url': url})
 
         elif engine == 'Bing':
             for item in soup.find_all('h2'):
                 title = item.get_text()
                 parent_a = item.find_parent('a')
-                url = parent_a['href'] if parent_a and parent_a.has_attr('href') else 'No URL available'
+                if parent_a and parent_a.has_attr('href'):
+                    url = parent_a['href']
+                else:
+                    url = 'No URL available'
                 headlines.append({'title': title, 'url': url})
 
         elif engine == 'DuckDuckGo':
@@ -65,7 +69,10 @@ def perform_search(query, engine):
             for item in soup.find_all('h2', class_='organic__title'):
                 title = item.get_text()
                 parent_a = item.find_parent('a')
-                url = parent_a['href'] if parent_a and parent_a.has_attr('href') else 'No URL available'
+                if parent_a and parent_a.has_attr('href'):
+                    url = parent_a['href']
+                else:
+                    url = 'No URL available'
                 headlines.append({'title': title, 'url': url})
 
         return headlines
