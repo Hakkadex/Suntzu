@@ -12,75 +12,61 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import urllib.parse
 
-GOOGLE_NEWS_URL = "https://news.google.com/search"
+SEARCH_ENGINES = {
+    'Google': 'https://www.google.com/search',
+    'Bing': 'https://www.bing.com/search',
+    'DuckDuckGo': 'https://duckduckgo.com/',
+    'Yandex': 'https://yandex.com/search/'
+}
 
-def parse_date(date_str):
-    """Parse date string into a datetime object."""
-    try:
-        return datetime.strptime(date_str, '%b %d, %Y')
-    except ValueError:
-        return None
-
-def is_recent(date, days=365):
-    """Check if the date is within the last 'days' days."""
-    return (datetime.now() - date).days <= days
-
-def perform_search(query):
-    """Perform a Google News search with military-related keywords appended."""
+def perform_search(query, engine):
+    """Perform a search on the specified search engine."""
     search_query = f"{query} military news"
-    params = {
-        'q': urllib.parse.quote(search_query),
-        'hl': 'en'
-    }
     headers = {
         'User-Agent': 'Suntzu CLI Tool'
     }
+    params = {'q': urllib.parse.quote(search_query)}
+
+    if engine == 'DuckDuckGo':
+        params = {'q': search_query}
+    elif engine == 'Yandex':
+        params = {'text': search_query}
 
     try:
-        response = requests.get(GOOGLE_NEWS_URL, headers=headers, params=params)
+        response = requests.get(SEARCH_ENGINES[engine], headers=headers, params=params)
         response.raise_for_status()
         
-        # Debugging: Print the first 1000 characters of the response
-        print("Debug: Response content snippet:", response.text[:1000])
-
         soup = BeautifulSoup(response.text, 'html.parser')
-        results = []
+        headlines = []
 
-        # Debugging: Check the structure of the soup object
-        print("Debug: Soup structure snippet:", soup.prettify()[:1000])
+        if engine == 'Google':
+            for item in soup.find_all('h3'):
+                title = item.get_text()
+                url = item.find_parent('a')['href']
+                headlines.append({'title': title, 'url': 'https://www.google.com' + url})
 
-        # Updated parsing logic based on typical Google News structure
-        for item in soup.find_all('article'):
-            title_tag = item.find('h3')
-            description_tag = item.find('span')
-            link_tag = item.find('a')
-            time_tag = item.find('time')
+        elif engine == 'Bing':
+            for item in soup.find_all('h2'):
+                title = item.get_text()
+                url = item.find_parent('a')['href']
+                headlines.append({'title': title, 'url': url})
 
-            title = title_tag.get_text() if title_tag else 'No title available'
-            description = description_tag.get_text() if description_tag else 'No description available'
-            url = link_tag['href'] if link_tag else 'No URL available'
-            
-            if url and not url.startswith('http'):
-                url = 'https://news.google.com' + url
+        elif engine == 'DuckDuckGo':
+            for item in soup.find_all('a', class_='result__a'):
+                title = item.get_text()
+                url = item['href']
+                headlines.append({'title': title, 'url': url})
 
-            date_text = time_tag.get_text() if time_tag else 'No date available'
-            date_published = parse_date(date_text)
+        elif engine == 'Yandex':
+            for item in soup.find_all('h2', class_='organic__title'):
+                title = item.get_text()
+                url = item.find_parent('a')['href']
+                headlines.append({'title': title, 'url': url})
 
-            if date_published and is_recent(date_published):
-                results.append({
-                    'title': title,
-                    'description': description,
-                    'url': url,
-                    'date': date_published
-                })
-
-        # Sort results by date in descending order
-        results.sort(key=lambda x: x['date'], reverse=True)
-
-        return results
+        return headlines
 
     except requests.exceptions.RequestException as e:
-        print(f"An error occurred: {e}")
+        print(f"An error occurred while querying {engine}: {e}")
         return []
 
 def display_results(results):
@@ -91,9 +77,7 @@ def display_results(results):
 
     for result in results:
         print(f"Title: {result['title']}")
-        print(f"Description: {result['description']}")
-        print(f"URL: {result['url']}")
-        print(f"Date: {result['date'].strftime('%Y-%m-%d')}\n")
+        print(f"URL: {result['url']}\n")
         print("-" * 80)
 
 if __name__ == "__main__":
@@ -102,15 +86,18 @@ if __name__ == "__main__":
         sys.exit(1)
 
     subject = sys.argv[1]
+    all_headlines = []
 
-    print(f"Subject to search: {subject}")
+    for engine in SEARCH_ENGINES.keys():
+        print(f"Querying {engine}...")
+        headlines = perform_search(subject, engine)
+        all_headlines.extend(headlines)
 
-    results = perform_search(subject)
-    display_results(results)
+    # Remove duplicate headlines and sort them by engine
+    unique_headlines = {h['title']: h for h in all_headlines}.values()
+    sorted_headlines = sorted(unique_headlines, key=lambda x: x['title'])
 
-
-
-
+    display_results(sorted_headlines)
 
 
 
