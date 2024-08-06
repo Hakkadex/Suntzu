@@ -4,12 +4,12 @@ nano suntzu.py
 #Paste the following code into suntzu.py and save the file:
 
 
+
 #!/usr/bin/env python3
 
 import sys
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime
 import urllib.parse
 
 SEARCH_ENGINES = {
@@ -39,16 +39,21 @@ def perform_search(query, engine):
         soup = BeautifulSoup(response.text, 'html.parser')
         headlines = []
 
+        # Debugging: Print the first 1000 characters of the response
+        print(f"Debug: {engine} response snippet:", response.text[:1000])
+
         if engine == 'Google':
             for item in soup.find_all('h3'):
                 title = item.get_text()
-                url = item.find_parent('a')['href']
-                headlines.append({'title': title, 'url': 'https://www.google.com' + url})
+                parent_a = item.find_parent('a')
+                url = 'https://www.google.com' + parent_a['href'] if parent_a and 'href' in parent_a.attrs else 'No URL available'
+                headlines.append({'title': title, 'url': url})
 
         elif engine == 'Bing':
             for item in soup.find_all('h2'):
                 title = item.get_text()
-                url = item.find_parent('a')['href']
+                parent_a = item.find_parent('a')
+                url = parent_a['href'] if parent_a and 'href' in parent_a.attrs else 'No URL available'
                 headlines.append({'title': title, 'url': url})
 
         elif engine == 'DuckDuckGo':
@@ -60,7 +65,8 @@ def perform_search(query, engine):
         elif engine == 'Yandex':
             for item in soup.find_all('h2', class_='organic__title'):
                 title = item.get_text()
-                url = item.find_parent('a')['href']
+                parent_a = item.find_parent('a')
+                url = parent_a['href'] if parent_a and 'href' in parent_a.attrs else 'No URL available'
                 headlines.append({'title': title, 'url': url})
 
         return headlines
@@ -93,11 +99,12 @@ if __name__ == "__main__":
         headlines = perform_search(subject, engine)
         all_headlines.extend(headlines)
 
-    # Remove duplicate headlines and sort them by engine
+    # Remove duplicate headlines and sort them by title
     unique_headlines = {h['title']: h for h in all_headlines}.values()
     sorted_headlines = sorted(unique_headlines, key=lambda x: x['title'])
 
     display_results(sorted_headlines)
+
 
 
 
