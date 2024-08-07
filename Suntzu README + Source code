@@ -217,4 +217,4 @@ sudo ln -s $(pwd)/suntzu.py /usr/local/bin/suntzuget
 suntzuget North Korea
 #You do not need to use _ between search words, example suntzuget North_Korea
 #You can simply type "suntzuget North Korea"
-
+This is not a professional research tool, it is a tool designed for terminal junkies who love the CLI, it pulls headlines and is more of an interesting tool to mess around with, designed for military nerds and terminal junkies as a hobby tool
