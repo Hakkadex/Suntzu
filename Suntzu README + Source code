@@ -205,7 +205,7 @@ if __name__ == "__main__":
 
 
 
-
+Be root user before running the install script, sudo su or be root before running it, it needs execution permissions. you dont have to be root to use the tool, just to install it with the script.
 #Make the file executable
 chmod +x suntzu.py
 
